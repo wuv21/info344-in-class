@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    var baseUrl = "http://localhost:8000/zips/city/"
+    var baseUrl = "http://138.68.249.67/zips/city/"
 
 
     $('#city-submit').click(function() {
