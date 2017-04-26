@@ -51,6 +51,8 @@ func (oac *OAuthConfig) GetAuthURL(state string) *url.URL {
 	qs.Add("scope", strings.Join(oac.Scopes, " "))
 	qs.Add("redirect_uri", oac.RedirURL)
 	qs.Add("state", state)
+	qs.Add("prompt", "consent")
+	qs.Add("access_type", "offline")
 	urlAuth.RawQuery = qs.Encode()
 
 	return urlAuth
