@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -35,8 +36,11 @@ func getPageLinks(URL string) (*PageLinks, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error resonse status code: %d", resp.StatusCode)
 	}
+
+	//if the requested URL is not an HTML page, just return a zero-value
+	//PageLinks struct
 	if !strings.HasPrefix(resp.Header.Get(headerContentType), contentTypeHTML) {
-		return nil, fmt.Errorf("the URL did not return an HTML page")
+		return &PageLinks{}, nil
 	}
 
 	psum := &PageLinks{}
@@ -44,6 +48,10 @@ func getPageLinks(URL string) (*PageLinks, error) {
 	for {
 		ttype := tokenizer.Next()
 		if ttype == html.ErrorToken {
+			err := tokenizer.Err()
+			if err == io.EOF {
+				return psum, nil
+			}
 			return psum, tokenizer.Err()
 		}
 
