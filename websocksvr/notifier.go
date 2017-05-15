@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"sync"
 
 	"encoding/json"
 
@@ -11,9 +10,9 @@ import (
 
 //Notifier represents a web sockets notifier
 type Notifier struct {
-	eventq  chan interface{}
-	clients map[*websocket.Conn]bool
-	mu      sync.RWMutex
+	eventq       chan interface{}
+	modifyClient chan *websocket.Conn
+	clients      map[*websocket.Conn]bool
 	//TODO: add other fields you might need
 	//such as another channel or a mutex
 	//(either would work)
@@ -27,9 +26,9 @@ func NewNotifier() *Notifier {
 	//TODO: create, initialize and return
 	//a Notifier struct
 	n := &Notifier{
-		eventq:  make(chan interface{}),
-		clients: make(map[*websocket.Conn]bool),
-		mu:      sync.RWMutex{},
+		eventq:       make(chan interface{}),
+		modifyClient: make(chan *websocket.Conn, 10),
+		clients:      make(map[*websocket.Conn]bool),
 	}
 
 	return n
@@ -48,6 +47,8 @@ func (n *Notifier) Start() {
 		select {
 		case e := <-n.eventq:
 			n.broadcast(e)
+		case e := <-n.modifyClient:
+			n.clients[e] = true
 		}
 	}
 }
@@ -59,10 +60,9 @@ func (n *Notifier) AddClient(client *websocket.Conn) {
 	//an HTTP handler, and each HTTP request is
 	//processed on its own goroutine, so your
 	//implementation here MUST be safe for concurrent use
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.modifyClient <- client
 
-	n.clients[client] = true
+	n.readPump(client)
 }
 
 //Notify will add a new event to the event queue
@@ -97,8 +97,6 @@ func (n *Notifier) broadcast(event interface{}) {
 	//and for even better performance, try using a PreparedMessage:
 	//https://godoc.org/github.com/gorilla/websocket#PreparedMessage
 	//https://godoc.org/github.com/gorilla/websocket#Conn.WritePreparedMessage
-	n.mu.Lock()
-	defer n.mu.Unlock()
 
 	eventConverted, err := json.Marshal(event)
 	if err != nil {
@@ -113,6 +111,8 @@ func (n *Notifier) broadcast(event interface{}) {
 		err = c.WritePreparedMessage(pm)
 		if err != nil {
 			c.Close()
+
+			// inside goroutine
 			delete(n.clients, c)
 		}
 	}

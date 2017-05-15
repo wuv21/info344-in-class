@@ -66,7 +66,6 @@ func (ctx *HandlerContext) WebSocketUpgradeHandler(w http.ResponseWriter, r *htt
 
 	//after upgrading, use the `.AddClient()` method on your notifier
 	//to add the new client to your notifier's map of clients
-
 	ctx.Notifier.AddClient(conn)
 }
 
