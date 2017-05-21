@@ -3,8 +3,8 @@
 const express = require('express');
 const morgan = require('morgan');
 
-const host = process.env.HOST || 'localhost';
-const port = process.env.PORT || '4005';
+const host = process.env.HOST || '';
+const port = process.env.PORT || '80';
 
 const app = express();
 
